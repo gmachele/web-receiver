@@ -62,10 +62,6 @@
             border-radius: 8px;
         }
 
-        .camera-container {
-            margin: 1rem 0;
-        }
-
         #photoPreview {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -97,17 +93,7 @@
             background-color: #1d4ed8;
         }
 
-        button.photo-btn {
-            background-color: #059669;
-        }
-
-        button.photo-btn:hover {
-            background-color: #047857;
-        }
-
-        .signature-pad {
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+        .file-upload {
             margin: 1rem 0;
         }
 
@@ -166,18 +152,11 @@
 
             <div class="photo-section">
                 <h2>Documentation Photos</h2>
-                <div class="camera-container">
-                    <video id="camera" style="display: none; width: 100%; max-width: 500px; margin: 0 auto;"></video>
-                    <button type="button" class="photo-btn" onclick="toggleCamera()">Toggle Camera</button>
-                    <button type="button" class="photo-btn" onclick="takePhoto()">Take Photo</button>
+                <div class="file-upload">
+                    <label for="fileInput">Upload Photos</label>
+                    <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFileUpload(event)">
                 </div>
                 <div id="photoPreview"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Receiver's Signature</label>
-                <canvas id="signaturePad" class="signature-pad" width="400" height="200"></canvas>
-                <button type="button" onclick="clearSignature()">Clear Signature</button>
             </div>
 
             <button type="submit">Submit Form</button>
@@ -185,152 +164,30 @@
     </div>
 
     <script>
-        let camera_stream = null;
         let photos = [];
-        let signaturePad = null;
 
-        // Initialize signature pad
-        window.onload = function() {
-            const canvas = document.getElementById('signaturePad');
-            const ctx = canvas.getContext('2d');
-            let drawing = false;
-
-            function startDrawing(e) {
-                drawing = true;
-                draw(e);
-            }
-
-            function stopDrawing() {
-                drawing = false;
-                ctx.beginPath();
-            }
-
-            function draw(e) {
-                if (!drawing) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-            }
-
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-
-            // Touch events for mobile
-            canvas.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            });
-
-            canvas.addEventListener('touchmove', function(e) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            });
-
-            canvas.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                const mouseEvent = new MouseEvent('mouseup', {});
-                canvas.dispatchEvent(mouseEvent);
-            });
-        };
-
-        // Camera functions
-        async function toggleCamera() {
-            const video = document.getElementById('camera');
-            
-            if (camera_stream) {
-                camera_stream.getTracks().forEach(track => track.stop());
-                camera_stream = null;
-                video.style.display = 'none';
-                return;
-            }
-
-            try {
-                camera_stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
-                video.srcObject = camera_stream;
-                video.style.display = 'block';
-                video.play();
-            } catch (err) {
-                alert('Error accessing camera: ' + err.message);
-            }
-        }
-
-        function takePhoto() {
-            if (!camera_stream) {
-                alert('Please enable camera first');
-                return;
-            }
-
-            const video = document.getElementById('camera');
-            const canvas = document.createElement('canvas');
-
-            // Set canvas resolution to a higher scale
-            const scale = 10; // Adjust this for higher resolution
-            canvas.width = video.videoWidth * scale;
-            canvas.height = video.videoHeight * scale;
-
-            const ctx = canvas.getContext('2d');
-            ctx.scale(scale, scale);
-            ctx.drawImage(video, 0, 0);
-
-            const photoUrl = canvas.toDataURL('image/jpeg', 1.0); // Use maximum quality (1.0)
-            photos.push(photoUrl);
-            updatePhotoPreview();
-        }
-
-
-        function updatePhotoPreview() {
+        function handleFileUpload(event) {
+            const files = event.target.files;
             const preview = document.getElementById('photoPreview');
-            preview.innerHTML = '';
-            
-            photos.forEach((photo, index) => {
-                const img = document.createElement('img');
-                img.src = photo;
-                img.classList.add('preview-image');
-                img.onclick = () => removePhoto(index);
-                preview.appendChild(img);
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    photos.push(e.target.raesult);
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.classList.add('preview-image');
+                    preview.appendChild(img);
+                };
+
+                reader.readAsDataURL(file);
             });
-        }
-
-        function removePhoto(index) {
-            if (confirm('Remove this photo?')) {
-                photos.splice(index, 1);
-                updatePhotoPreview();
-            }
-        }
-
-        function clearSignature() {
-            const canvas = document.getElementById('signaturePad');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         function handleSubmit(event) {
             event.preventDefault();
-            
-            // Gather form data
+
             const formData = {
                 deliveryDate: document.getElementById('deliveryDate').value,
                 deliveryTime: document.getElementById('deliveryTime').value,
@@ -339,91 +196,17 @@
                 trailerNumber: document.getElementById('trailerNumber').value,
                 palletCount: document.getElementById('palletCount').value,
                 notes: document.getElementById('notes').value,
-                photos: photos,
-                signature: document.getElementById('signaturePad').toDataURL()
+                photos: photos
             };
 
-            // Here you would typically send the data to your server
             console.log('Form submitted:', formData);
             alert('Form submitted successfully!');
-            
-            // Reset form
-            event.target.reset();
-            photos = [];
-            updatePhotoPreview();
-            clearSignature();
-        }
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <script>
-        async function handleSubmit(event) {
-            event.preventDefault();
-    
-            // Gather form data
-            const formData = {
-                deliveryDate: document.getElementById('deliveryDate').value,
-                deliveryTime: document.getElementById('deliveryTime').value,
-                poNumber: document.getElementById('poNumber').value,
-                carrierName: document.getElementById('carrierName').value,
-                trailerNumber: document.getElementById('trailerNumber').value,
-                palletCount: document.getElementById('palletCount').value,
-                notes: document.getElementById('notes').value,
-                photos: photos,
-                signature: document.getElementById('signaturePad').toDataURL()
-            };
-    
-            // Generate PDF
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-    
-            pdf.setFontSize(14);
-            pdf.text('Dispatch Receiving Form', 105, 10, { align: 'center' });
-    
-            pdf.setFontSize(12);
-            pdf.text(`Delivery Date: ${formData.deliveryDate}`, 10, 20);
-            pdf.text(`Delivery Time: ${formData.deliveryTime}`, 10, 30);
-            pdf.text(`PO Number: ${formData.poNumber}`, 10, 40);
-            pdf.text(`Carrier Name: ${formData.carrierName}`, 10, 50);
-            pdf.text(`Trailer Number: ${formData.trailerNumber}`, 10, 60);
-            pdf.text(`Pallet Count: ${formData.palletCount}`, 10, 70);
-            pdf.text('Notes:', 10, 80);
-            pdf.text(formData.notes, 10, 90, { maxWidth: 190 });
-    
-            // Add photos to PDF
-            if (formData.photos.length > 0) {
-                let yOffset = 100;
-                for (let i = 0; i < formData.photos.length; i++) {
-                    // Adjust width and height for better resolution in the PDF
-                    const imgWidth = 120; // Increase width
-                    const imgHeight = 90; // Adjust height proportionally
-                    pdf.addImage(formData.photos[i], 'JPEG', 10, yOffset, imgWidth, imgHeight, undefined, 'FAST'); // Use 'FAST' compression mode
-                    yOffset += imgHeight + 10;
-                    if (yOffset > 250 && i < formData.photos.length - 1) {
-                        pdf.addPage();
-                        yOffset = 20;
-                    }
-                }
-            }
-            // Add signature to PDF
-            if (formData.signature) {
-                pdf.addPage();
-                pdf.text('Receiver\'s Signature:', 10, 20);
-                pdf.addImage(formData.signature, 'PNG', 10, 30, 100, 50);
-            }
-    
-            // Save the PDF
-            //pdf.save('Dispatch_Receiving_Form.pdf');
-            //doc.save(`dispatch_receiving_form_${values['poNumber'] || 'unknown'}.pdf`);
-            // Save the PDF
-            pdf.save(`dispatch_receiving_form_${formData.poNumber || 'unknown'}.pdf`);
 
             // Reset form
             event.target.reset();
             photos = [];
-            updatePhotoPreview();
-            clearSignature();
+            document.getElementById('photoPreview').innerHTML = '';
         }
     </script>
-    
 </body>
 </html>
