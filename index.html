@@ -207,6 +207,8 @@
             photos = [];
             document.getElementById('photoPreview').innerHTML = '';
         }
+
+        pdf.save(`dispatch_receiving_form_${formData.poNumber || 'unknown'}.pdf`);
     </script>
 </body>
 </html>
